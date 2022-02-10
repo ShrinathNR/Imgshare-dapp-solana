@@ -31,13 +31,16 @@ const main = async() => {
   let account = await program.account.baseAccount.fetch(baseAccount.publicKey);
   console.log('👀 Image Count', account.totalImages.toString())
 
-  await program.rpc.addImage({
+  await program.rpc.addImage("https://i.imgur.com/a7s4g5Bb.jpg","this is a message 1",{
     accounts: {
       baseAccount: baseAccount.publicKey,
+      user:provider.wallet.publicKey,
     },
   });
   account = await program.account.baseAccount.fetch(baseAccount.publicKey);
-  console.log('👀 Image Count', account.totalImages.toString())
+  console.log('👀 Image Count', account.totalImages.toString());
+
+  console.log('👀 GIF List', account.imgList);
 }
 
 const runMain = async () => {
