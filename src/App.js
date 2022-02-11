@@ -2,16 +2,19 @@ import React, {useEffect, useState} from 'react';
 import twitterLogo from './assets/twitter-logo.svg';
 import './App.css';
 import idl from './idl.json';
+import kp from './keypair.json'
 
 import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import { Program, Provider, web3 } from '@project-serum/anchor';
 
 
 // SystemProgram is a reference to the Solana runtime!
-const { SystemProgram, Keypair } = web3;
+const { SystemProgram } = web3;
 
 // Create a keypair for the account that will hold the GIF data.
-let baseAccount = Keypair.generate();
+const arr = Object.values(kp._keypair.secretKey)
+const secret = new Uint8Array(arr)
+const baseAccount = web3.Keypair.fromSecretKey(secret)
 
 // Get our program's id from the IDL file.
 const programID = new PublicKey(idl.metadata.address);
@@ -106,11 +109,25 @@ const App = () => {
   }
   //send the meme img
   const sendMemeInfo = async () =>{
-    if(imgURL.length>0 && message.length>0){
-      console.log("meme link : ", imgURL);
-      console.log("description:", message);
-    } else{
-      console.log("Enter valid url and message.");
+    if(imgURL.length === 0 ){
+      console.log("no meme link");
+      return;
+    }
+    try{
+      const provider= getProvider();
+      const program = new Program(idl, programID, provider);
+
+      await program.rpc.addImage(imgURL, message.length ? message : "",{
+        accounts: {
+          baseAccount: baseAccount.publicKey,
+          user: provider.wallet.publicKey,
+        }
+      });
+      console.log("img url : ", imgURL);
+
+      await getImageList();
+    }catch(err){
+      console.log(err);
     }
   };
 
@@ -123,6 +140,7 @@ const App = () => {
       
       console.log("got the account", account);
       setMemeList(account.imgList);
+      console.log(memeList);
     }catch(err){
       console.log(err);
       setMemeList(null);
@@ -152,9 +170,10 @@ const App = () => {
             <button type='submit' className="cta-button submit-img-button">Share</button>
           </form>
           <div className="img-grid">
-            {memeList.map(img => (
-              <div className="img-item" key={img}>
-                <img src={img} alt={img} />
+            {memeList.map((meme,id) => (
+              <div className="img-item" key={id}>
+                <img src={meme.imgLink} alt={meme.imgLink} />
+                <p>{meme.msg}</p>
               </div>
             ))}
           </div>
